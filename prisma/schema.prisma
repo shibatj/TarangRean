@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Student {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  enrollments       Enrollment[]
+  scheduleItems     ScheduleItem[]
+  studentAssignments StudentAssignment[]
+}
+
+model Class {
+  id        String   @id @default(cuid())
+  name      String
+  teacher   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  meetings    ClassMeeting[]
+  enrollments Enrollment[]
+  assignments Assignment[]
+  scheduleItems ScheduleItem[]
+
+  @@unique([name, teacher])
+}
+
+model ClassMeeting {
+  id        String   @id @default(cuid())
+  classId   String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([classId])
+  @@unique([classId, dayOfWeek, startTime, endTime])
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  studentId String
+  classId   String
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, classId])
+  @@index([studentId])
+  @@index([classId])
+}
+
+model ScheduleItem {
+  id        String   @id @default(cuid())
+  studentId String
+  classId   String
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, classId])
+  @@index([studentId])
+  @@index([classId])
+}
+
+model Assignment {
+  id        String   @id @default(cuid())
+  classId   String
+  title     String
+  dueDate   DateTime
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  class            Class              @relation(fields: [classId], references: [id], onDelete: Cascade)
+  studentAssignments StudentAssignment[]
+
+  @@index([classId])
+  @@index([dueDate])
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  SUBMITTED
+  GRADED
+  MISSING
+}
+
+model StudentAssignment {
+  id           String           @id @default(cuid())
+  studentId    String
+  assignmentId String
+  status       AssignmentStatus @default(ASSIGNED)
+  submittedAt  DateTime?
+  gradedAt     DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, assignmentId])
+  @@index([studentId])
+  @@index([assignmentId])
+  @@index([status])
+}
